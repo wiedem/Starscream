@@ -1,4 +1,4 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.4
 
 //
 //  Package.Swift
@@ -29,8 +29,10 @@ let package = Package(
     ],
     dependencies: [],
     targets: [
-        .target(name: "Starscream",
-                path: "Sources"),
+        .target(
+            name: "Starscream",
+            path: "Sources"
+        ),
     ]
 )
 
