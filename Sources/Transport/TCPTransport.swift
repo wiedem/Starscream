@@ -105,11 +105,11 @@ public class TCPTransport: Transport {
             switch newState {
             case .ready:
                 self?.delegate?.connectionChanged(state: .connected)
-            case .waiting:
-                self?.delegate?.connectionChanged(state: .waiting)
+            case let .waiting(error):
+                self?.delegate?.connectionChanged(state: .waiting(error))
             case .cancelled:
                 self?.delegate?.connectionChanged(state: .cancelled)
-            case .failed(let error):
+            case let .failed(error):
                 self?.delegate?.connectionChanged(state: .failed(error))
             case .setup, .preparing:
                 break
