@@ -25,6 +25,7 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
     private let writeQueue = DispatchQueue(label: "com.vluxe.starscream.writequeue")
     private let mutex = DispatchSemaphore(value: 1)
     private var canSend = false
+    private var isConnecting = false
 
     weak var delegate: EngineDelegate?
     public var respondToPingWithPong: Bool = true
@@ -52,9 +53,10 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
 
     public func start(request: URLRequest) {
         mutex.wait()
+        let isConnecting = isConnecting
         let isConnected = canSend
         mutex.signal()
-        if isConnected {
+        if isConnecting || isConnected {
             return
         }
 
@@ -66,6 +68,9 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
         guard let url = request.url else {
             return
         }
+        mutex.wait()
+        self.isConnecting = true
+        mutex.signal()
         transport.connect(url: url, timeout: request.timeoutInterval, certificatePinning: certPinner)
     }
 
@@ -81,6 +86,10 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
     }
 
     public func forceStop() {
+        mutex.wait()
+        isConnecting = false
+        mutex.signal()
+
         transport.disconnect()
     }
 
@@ -140,6 +149,10 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
                 }
             }
         case .cancelled:
+            mutex.wait()
+            isConnecting = false
+            mutex.signal()
+
             broadcast(event: .cancelled)
         }
     }
@@ -154,6 +167,7 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
                 return
             }
             mutex.wait()
+            isConnecting = false
             didUpgrade = true
             canSend = true
             mutex.signal()
@@ -226,6 +240,7 @@ public class WSEngine: Engine, TransportEventClient, FramerEventClient,
 
     private func reset() {
         mutex.wait()
+        isConnecting = false
         canSend = false
         didUpgrade = false
         mutex.signal()
