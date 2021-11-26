@@ -11,32 +11,31 @@ import UIKit
 import Starscream
 
 class ViewController: UIViewController, WebSocketDelegate {
-    
-    var socket: WebSocket = WebSocket(url: URL(staticString: "wss://echo.websocket.org"))
-    
-    func websocketDidConnect(socket: WebSocketClient) {
+    var socket = WebSocket(url: URL(staticString: "wss://echo.websocket.org"))
+
+    func websocketDidConnect(socket _: WebSocketClient) {
         print("websocketDidConnect")
     }
-    
-    func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
+
+    func websocketDidDisconnect(socket _: WebSocketClient, error: Error?) {
         print("websocketDidDisconnect", error ?? "")
     }
-    
-    func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
+
+    func websocketDidReceiveMessage(socket _: WebSocketClient, text: String) {
         print("websocketDidReceiveMessage", text)
     }
-    
-    func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
+
+    func websocketDidReceiveData(socket _: WebSocketClient, data: Data) {
         print("websocketDidReceiveData", data)
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         socket.delegate = self
     }
-    
-    @IBAction func connect(_ sender: Any) {
+
+    @IBAction func connect(_: Any) {
         socket.connect()
     }
 }

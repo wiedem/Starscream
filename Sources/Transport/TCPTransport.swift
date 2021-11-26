@@ -35,42 +35,42 @@ public class TCPTransport: Transport {
     private weak var delegate: TransportEventClient?
     private var isRunning = false
     private var isTLS = false
-    
+
     public var usingTLS: Bool {
-        return self.isTLS
+        isTLS
     }
-    
+
     public init(connection: NWConnection) {
         self.connection = connection
         start()
     }
-    
+
     public init() {
-        //normal connection, will use the "connect" method below
+        // normal connection, will use the "connect" method below
     }
-    
+
     public func connect(url: URL, timeout: Double = 10, certificatePinning: CertificatePinning? = nil) {
         guard let parts = url.getParts() else {
             delegate?.connectionChanged(state: .failed(TCPTransportError.invalidRequest))
             return
         }
-        self.isTLS = parts.isTLS
+        isTLS = parts.isTLS
         let options = NWProtocolTCP.Options()
         options.connectionTimeout = Int(timeout.rounded(.up))
 
         let tlsOptions = isTLS ? NWProtocolTLS.Options() : nil
         if let tlsOpts = tlsOptions {
-            sec_protocol_options_set_verify_block(tlsOpts.securityProtocolOptions, { (sec_protocol_metadata, sec_trust, sec_protocol_verify_complete) in
+            sec_protocol_options_set_verify_block(tlsOpts.securityProtocolOptions, { _, sec_trust, sec_protocol_verify_complete in
                 let trust = sec_trust_copy_ref(sec_trust).takeRetainedValue()
                 guard let pinner = certificatePinning else {
                     sec_protocol_verify_complete(true)
                     return
                 }
-                pinner.evaluateTrust(trust: trust, domain: parts.host, completion: { (state) in
+                pinner.evaluateTrust(trust: trust, domain: parts.host, completion: { state in
                     switch state {
                     case .success:
                         sec_protocol_verify_complete(true)
-                    case .failed(_):
+                    case .failed:
                         sec_protocol_verify_complete(false)
                     }
                 })
@@ -81,27 +81,27 @@ public class TCPTransport: Transport {
         connection = conn
         start()
     }
-    
+
     public func disconnect() {
         isRunning = false
         connection?.cancel()
     }
-    
+
     public func register(delegate: TransportEventClient) {
         self.delegate = delegate
     }
-    
-    public func write(data: Data, completion: @escaping ((Error?) -> ())) {
-        connection?.send(content: data, completion: .contentProcessed { (error) in
+
+    public func write(data: Data, completion: @escaping ((Error?) -> Void)) {
+        connection?.send(content: data, completion: .contentProcessed { error in
             completion(error)
         })
     }
-    
+
     private func start() {
         guard let conn = connection else {
             return
         }
-        conn.stateUpdateHandler = { [weak self] (newState) in
+        conn.stateUpdateHandler = { [weak self] newState in
             switch newState {
             case .ready:
                 self?.delegate?.connectionChanged(state: .connected)
@@ -117,36 +117,36 @@ public class TCPTransport: Transport {
                 break
             }
         }
-        
-        conn.viabilityUpdateHandler = { [weak self] (isViable) in
+
+        conn.viabilityUpdateHandler = { [weak self] isViable in
             self?.delegate?.connectionChanged(state: .viability(isViable))
         }
-        
-        conn.betterPathUpdateHandler = { [weak self] (isBetter) in
+
+        conn.betterPathUpdateHandler = { [weak self] isBetter in
             self?.delegate?.connectionChanged(state: .shouldReconnect(isBetter))
         }
-        
+
         conn.start(queue: queue)
         isRunning = true
         readLoop()
     }
-    
-    //readLoop keeps reading from the connection to get the latest content
+
+    // readLoop keeps reading from the connection to get the latest content
     private func readLoop() {
         if !isRunning {
             return
         }
-        connection?.receive(minimumIncompleteLength: 2, maximumLength: 4096, completion: {[weak self] (data, context, isComplete, error) in
-            guard let s = self else {return}
+        connection?.receive(minimumIncompleteLength: 2, maximumLength: 4096, completion: { [weak self] data, context, isComplete, error in
+            guard let s = self else { return }
             if let data = data {
                 s.delegate?.connectionChanged(state: .receive(data))
             }
-            
+
             // Refer to https://developer.apple.com/documentation/network/implementing_netcat_with_network_framework
             if let context = context, context.isFinal, isComplete {
                 return
             }
-            
+
             if error == nil {
                 s.readLoop()
             }

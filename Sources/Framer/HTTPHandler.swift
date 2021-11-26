@@ -27,22 +27,22 @@ public enum HTTPUpgradeError: Error {
     case invalidData
 }
 
-public struct HTTPWSHeader {
-    static let upgradeName        = "Upgrade"
-    static let upgradeValue       = "websocket"
-    static let hostName           = "Host"
-    static let connectionName     = "Connection"
-    static let connectionValue    = "Upgrade"
-    static let protocolName       = "Sec-WebSocket-Protocol"
-    static let versionName        = "Sec-WebSocket-Version"
-    static let versionValue       = "13"
-    static let extensionName      = "Sec-WebSocket-Extensions"
-    static let keyName            = "Sec-WebSocket-Key"
-    static let originName         = "Origin"
-    static let acceptName         = "Sec-WebSocket-Accept"
+public enum HTTPWSHeader {
+    static let upgradeName = "Upgrade"
+    static let upgradeValue = "websocket"
+    static let hostName = "Host"
+    static let connectionName = "Connection"
+    static let connectionValue = "Upgrade"
+    static let protocolName = "Sec-WebSocket-Protocol"
+    static let versionName = "Sec-WebSocket-Version"
+    static let versionValue = "13"
+    static let extensionName = "Sec-WebSocket-Extensions"
+    static let keyName = "Sec-WebSocket-Key"
+    static let originName = "Origin"
+    static let acceptName = "Sec-WebSocket-Accept"
     static let switchProtocolCode = 101
-    static let defaultSSLSchemes  = ["wss", "https"]
-    
+    static let defaultSSLSchemes = ["wss", "https"]
+
     /// Creates a new URLRequest based off the source URLRequest.
     /// - Parameter request: the request to "upgrade" the WebSocket request by adding headers.
     /// - Parameter supportsCompression: set if the client support text compression.
@@ -52,11 +52,11 @@ public struct HTTPWSHeader {
         guard let url = request.url, let parts = url.getParts() else {
             return request
         }
-        
+
         var req = request
         if request.value(forHTTPHeaderField: HTTPWSHeader.originName) == nil {
             var origin = url.absoluteString
-            if let hostUrl = URL (string: "/", relativeTo: url) {
+            if let hostUrl = URL(string: "/", relativeTo: url) {
                 origin = hostUrl.absoluteString
                 origin.remove(at: origin.index(before: origin.endIndex))
             }
@@ -66,14 +66,14 @@ public struct HTTPWSHeader {
         req.setValue(HTTPWSHeader.connectionValue, forHTTPHeaderField: HTTPWSHeader.connectionName)
         req.setValue(HTTPWSHeader.versionValue, forHTTPHeaderField: HTTPWSHeader.versionName)
         req.setValue(secKeyValue, forHTTPHeaderField: HTTPWSHeader.keyName)
-        
+
         if let cookies = HTTPCookieStorage.shared.cookies(for: url), !cookies.isEmpty {
             let headers = HTTPCookie.requestHeaderFields(with: cookies)
             for (key, val) in headers {
                 req.setValue(val, forHTTPHeaderField: key)
             }
         }
-        
+
         if supportsCompression {
             let val = "permessage-deflate; client_max_window_bits; server_max_window_bits=15"
             req.setValue(val, forHTTPHeaderField: HTTPWSHeader.extensionName)
@@ -82,10 +82,10 @@ public struct HTTPWSHeader {
         req.setValue(hostValue, forHTTPHeaderField: HTTPWSHeader.hostName)
         return req
     }
-    
+
     // generateWebSocketKey 16 random characters between a-z and return them as a base64 string
     public static func generateWebSocketKey() -> String {
-        return Data((0..<16).map{ _ in UInt8.random(in: 97...122) }).base64EncodedString()
+        Data((0..<16).map { _ in UInt8.random(in: 97...122) }).base64EncodedString()
     }
 }
 
@@ -123,19 +123,19 @@ public struct URLParts {
 public extension URL {
     /// isTLSScheme returns true if the scheme is https or wss
     var isTLSScheme: Bool {
-        guard let scheme = self.scheme else {
+        guard let scheme = scheme else {
             return false
         }
         return HTTPWSHeader.defaultSSLSchemes.contains(scheme)
     }
-    
+
     /// getParts pulls host and port from the url.
     func getParts() -> URLParts? {
-        guard let host = self.host else {
+        guard let host = host else {
             return nil // no host, this isn't a valid url
         }
         let isTLS = isTLSScheme
-        var port = self.port ?? 0
+        var port = port ?? 0
         if self.port == nil {
             if isTLS {
                 port = 443

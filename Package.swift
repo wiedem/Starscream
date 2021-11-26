@@ -23,17 +23,17 @@
 import PackageDescription
 
 let package = Package(
-        name: "Starscream",
-        products: [
-            .library(name: "Starscream", targets: ["Starscream"])
-        ],
-        dependencies: [],
-        targets: [
-            .target(name: "Starscream",
-                    path: "Sources")
-        ]
+    name: "Starscream",
+    products: [
+        .library(name: "Starscream", targets: ["Starscream"]),
+    ],
+    dependencies: [],
+    targets: [
+        .target(name: "Starscream",
+                path: "Sources"),
+    ]
 )
 
 #if os(Linux)
-    package.dependencies.append(.package(url: "https://github.com/apple/swift-nio-zlib-support.git", from: "1.0.0"))
+package.dependencies.append(.package(url: "https://github.com/apple/swift-nio-zlib-support.git", from: "1.0.0"))
 #endif

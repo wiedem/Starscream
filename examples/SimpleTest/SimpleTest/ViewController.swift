@@ -20,14 +20,14 @@
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-import UIKit
 import Starscream
+import UIKit
 
 class ViewController: UIViewController, WebSocketDelegate {
     var socket: WebSocket!
     var isConnected = false
     let server = WebSocketServer()
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
 //        let err = server.start(address: "localhost", port: 8080)
@@ -43,43 +43,44 @@ class ViewController: UIViewController, WebSocketDelegate {
 //                break
 //            }
 //        }
-        //https://echo.websocket.org
-        var request = URLRequest(url: URL(string: "http://localhost:8080")!) //https://localhost:8080
+        // https://echo.websocket.org
+        var request = URLRequest(url: URL(string: "http://localhost:8080")!) // https://localhost:8080
         request.timeoutInterval = 5
         socket = WebSocket(request: request)
         socket.delegate = self
         socket.connect()
     }
-    
+
     // MARK: - WebSocketDelegate
-    func didReceive(event: WebSocketEvent, client: WebSocket) {
+
+    func didReceive(event: WebSocketEvent, client _: WebSocket) {
         switch event {
-        case .connected(let headers):
+        case let .connected(headers):
             isConnected = true
             print("websocket is connected: \(headers)")
-        case .disconnected(let reason, let code):
+        case let .disconnected(reason, code):
             isConnected = false
             print("websocket is disconnected: \(reason) with code: \(code)")
-        case .text(let string):
+        case let .text(string):
             print("Received text: \(string)")
-        case .binary(let data):
+        case let .binary(data):
             print("Received data: \(data.count)")
-        case .ping(_):
+        case .ping:
             break
-        case .pong(_):
+        case .pong:
             break
-        case .viabilityChanged(_):
+        case .viabilityChanged:
             break
-        case .reconnectSuggested(_):
+        case .reconnectSuggested:
             break
         case .cancelled:
             isConnected = false
-        case .error(let error):
+        case let .error(error):
             isConnected = false
             handleError(error)
         }
     }
-    
+
     func handleError(_ error: Error?) {
         if let e = error as? WSError {
             print("websocket encountered an error: \(e.message)")
@@ -89,15 +90,15 @@ class ViewController: UIViewController, WebSocketDelegate {
             print("websocket encountered an error")
         }
     }
-    
+
     // MARK: Write Text Action
-    
-    @IBAction func writeText(_ sender: UIBarButtonItem) {
+
+    @IBAction func writeText(_: UIBarButtonItem) {
         socket.write(string: "hello there!")
     }
-    
+
     // MARK: Disconnect Action
-    
+
     @IBAction func disconnect(_ sender: UIBarButtonItem) {
         if isConnected {
             sender.title = "Connect"
@@ -107,6 +108,4 @@ class ViewController: UIViewController, WebSocketDelegate {
             socket.connect()
         }
     }
-    
 }
-

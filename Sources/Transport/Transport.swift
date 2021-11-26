@@ -29,16 +29,16 @@ public enum ConnectionState {
     case waiting(Error?)
     case cancelled
     case failed(Error?)
-    
-    //the viability (connection status) of the connection has updated
-    //e.g. connection is down, connection came back up, etc
+
+    // the viability (connection status) of the connection has updated
+    // e.g. connection is down, connection came back up, etc
     case viability(Bool)
-    
-    //the connection has upgrade to wifi from cellular.
-    //you should consider reconnecting to take advantage of this
+
+    // the connection has upgrade to wifi from cellular.
+    // you should consider reconnecting to take advantage of this
     case shouldReconnect(Bool)
-    
-    //the connection receive data
+
+    // the connection receive data
     case receive(Data)
 }
 
@@ -50,6 +50,6 @@ public protocol Transport: AnyObject {
     func register(delegate: TransportEventClient)
     func connect(url: URL, timeout: Double, certificatePinning: CertificatePinning?)
     func disconnect()
-    func write(data: Data, completion: @escaping ((Error?) -> ()))
+    func write(data: Data, completion: @escaping ((Error?) -> Void))
     var usingTLS: Bool { get }
 }

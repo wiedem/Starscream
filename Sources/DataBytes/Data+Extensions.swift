@@ -26,10 +26,10 @@ import Foundation
 
 internal extension Data {
     struct ByteError: Swift.Error {}
-    
+
     #if swift(>=5.0)
     func withUnsafeBytes<ResultType, ContentType>(_ completion: (UnsafePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
-        return try withUnsafeBytes {
+        try withUnsafeBytes {
             if let baseAddress = $0.baseAddress, $0.count > 0 {
                 return try completion(baseAddress.assumingMemoryBound(to: ContentType.self))
             } else {
@@ -38,10 +38,10 @@ internal extension Data {
         }
     }
     #endif
-    
+
     #if swift(>=5.0)
     mutating func withUnsafeMutableBytes<ResultType, ContentType>(_ completion: (UnsafeMutablePointer<ContentType>) throws -> ResultType) rethrows -> ResultType {
-        return try withUnsafeMutableBytes {
+        try withUnsafeMutableBytes {
             if let baseAddress = $0.baseAddress, $0.count > 0 {
                 return try completion(baseAddress.assumingMemoryBound(to: ContentType.self))
             } else {

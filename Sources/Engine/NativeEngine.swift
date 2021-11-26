@@ -33,44 +33,43 @@ public class NativeEngine: NSObject, Engine, URLSessionDataDelegate, URLSessionW
         stop(closeCode: UInt16(URLSessionWebSocketTask.CloseCode.abnormalClosure.rawValue))
     }
 
-    public func write(string: String, completion: (() -> ())?) {
-        task?.send(.string(string), completionHandler: { (error) in
+    public func write(string: String, completion: (() -> Void)?) {
+        task?.send(.string(string), completionHandler: { _ in
             completion?()
         })
     }
 
-    public func write(data: Data, opcode: FrameOpCode, completion: (() -> ())?) {
+    public func write(data: Data, opcode: FrameOpCode, completion: (() -> Void)?) {
         switch opcode {
         case .binaryFrame:
-            task?.send(.data(data), completionHandler: { (error) in
+            task?.send(.data(data), completionHandler: { _ in
                 completion?()
             })
         case .textFrame:
             let text = String(data: data, encoding: .utf8)!
             write(string: text, completion: completion)
         case .ping:
-            task?.sendPing(pongReceiveHandler: { (error) in
+            task?.sendPing(pongReceiveHandler: { _ in
                 completion?()
             })
         default:
-            break //unsupported
+            break // unsupported
         }
     }
 
     private func doRead() {
-        task?.receive { [weak self] (result) in
+        task?.receive { [weak self] result in
             switch result {
-            case .success(let message):
+            case let .success(message):
                 switch message {
-                case .string(let string):
+                case let .string(string):
                     self?.broadcast(event: .text(string))
-                case .data(let data):
+                case let .data(data):
                     self?.broadcast(event: .binary(data))
                 @unknown default:
                     break
                 }
-                break
-            case .failure(let error):
+            case let .failure(error):
                 self?.broadcast(event: .error(error))
                 return
             }
@@ -81,13 +80,13 @@ public class NativeEngine: NSObject, Engine, URLSessionDataDelegate, URLSessionW
     private func broadcast(event: WebSocketEvent) {
         delegate?.didReceive(event: event)
     }
-    
-    public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+
+    public func urlSession(_: URLSession, webSocketTask _: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
         let p = `protocol` ?? ""
         broadcast(event: .connected([HTTPWSHeader.protocolName: p]))
     }
-    
-    public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+
+    public func urlSession(_: URLSession, webSocketTask _: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         var r = ""
         if let d = reason {
             r = String(data: d, encoding: .utf8) ?? ""

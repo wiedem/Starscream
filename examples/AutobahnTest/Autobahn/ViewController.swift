@@ -6,38 +6,37 @@
 //  Copyright (c) 2015 vluxe. All rights reserved.
 //
 
-import UIKit
 import Starscream
+import UIKit
 
 class ViewController: UIViewController {
-    
     let host = "localhost:9001"
     var socketArray = [WebSocket]()
-    var caseCount = 300 //starting cases
+    var caseCount = 300 // starting cases
     override func viewDidLoad() {
         super.viewDidLoad()
         getCaseCount()
-        //getTestInfo(1)
-        //runTest(304)
+        // getTestInfo(1)
+        // runTest(304)
     }
-    
+
     func removeSocket(_ s: WebSocket?) {
-        guard let s = s else {return}
-        socketArray = socketArray.filter{$0 !== s}
+        guard let s = s else { return }
+        socketArray = socketArray.filter { $0 !== s }
     }
-    
+
     func getCaseCount() {
         let req = URLRequest(url: URL(string: "ws://\(host)/getCaseCount")!)
         let s = WebSocket(request: req)
         socketArray.append(s)
         s.onEvent = { [weak self] event in
             switch event {
-            case .text(let string):
+            case let .text(string):
                 if let c = Int(string) {
                     print("number of cases is: \(c)")
                     self?.caseCount = c
                 }
-            case .disconnected(_, _):
+            case .disconnected:
                 self?.runTest(1)
                 self?.removeSocket(s)
             default:
@@ -46,9 +45,9 @@ class ViewController: UIViewController {
         }
         s.connect()
     }
-    
+
     func getTestInfo(_ caseNum: Int) {
-        let s = createSocket("getCaseInfo",caseNum)
+        let s = createSocket("getCaseInfo", caseNum)
         socketArray.append(s)
 //        s.onText = { (text: String) in
 //            let data = text.dataUsingEncoding(NSUTF8StringEncoding)
@@ -70,7 +69,7 @@ class ViewController: UIViewController {
         var once = false
         s.onEvent = { [weak self] event in
             switch event {
-            case .disconnected(_, _), .error(_):
+            case .disconnected(_, _), .error:
                 if !once {
                     once = true
                     self?.runTest(caseNum)
@@ -82,33 +81,33 @@ class ViewController: UIViewController {
         }
         s.connect()
     }
-    
+
     func runTest(_ caseNum: Int) {
-        let s = createSocket("runCase",caseNum)
-        self.socketArray.append(s)
-        
+        let s = createSocket("runCase", caseNum)
+        socketArray.append(s)
+
         var once = false
         s.onEvent = { [weak self, weak s] event in
             switch event {
-            case .disconnected(_, _), .error(_):
+            case .disconnected(_, _), .error:
                 if !once {
                     once = true
                     print("case:\(caseNum) finished")
-                    //self?.verifyTest(caseNum) //disabled since it slows down the tests
-                    let nextCase = caseNum+1
+                    // self?.verifyTest(caseNum) //disabled since it slows down the tests
+                    let nextCase = caseNum + 1
                     if nextCase <= (self?.caseCount)! {
                         self?.runTest(nextCase)
-                        //self?.getTestInfo(nextCase) //disabled since it slows down the tests
+                        // self?.getTestInfo(nextCase) //disabled since it slows down the tests
                     } else {
                         self?.finishReports()
                     }
                     self?.removeSocket(s)
                 }
                 self?.removeSocket(s)
-            case .text(let string):
-               s?.write(string: string)
-            case .binary(let data):
-               s?.write(data: data)
+            case let .text(string):
+                s?.write(string: string)
+            case let .binary(data):
+                s?.write(data: data)
 //            case .error(let error):
 //                print("got an error: \(error)")
             default:
@@ -117,7 +116,7 @@ class ViewController: UIViewController {
         }
         s.connect()
     }
-    
+
 //    func verifyTest(_ caseNum: Int) {
 //        let s = createSocket("getCaseStatus",caseNum)
 //        self.socketArray.append(s)
@@ -155,13 +154,13 @@ class ViewController: UIViewController {
 //        }
 //        s.connect()
 //    }
-    
+
     func finishReports() {
-        let s = createSocket("updateReports",0)
-        self.socketArray.append(s)
+        let s = createSocket("updateReports", 0)
+        socketArray.append(s)
         s.onEvent = { [weak self, weak s] event in
             switch event {
-            case .disconnected(_, _):
+            case .disconnected:
                 print("finished all the tests!")
                 self?.removeSocket(s)
             default:
@@ -170,15 +169,14 @@ class ViewController: UIViewController {
         }
         s.connect()
     }
-    
+
     func createSocket(_ cmd: String, _ caseNum: Int) -> WebSocket {
-        let req = URLRequest(url: URL(string: "ws://\(host)\(buildPath(cmd,caseNum))")!)
-        //return WebSocket(request: req, compressionHandler: WSCompression())
+        let req = URLRequest(url: URL(string: "ws://\(host)\(buildPath(cmd, caseNum))")!)
+        // return WebSocket(request: req, compressionHandler: WSCompression())
         return WebSocket(request: req)
     }
-    
+
     func buildPath(_ cmd: String, _ caseNum: Int) -> String {
-        return "/\(cmd)?case=\(caseNum)&agent=Starscream"
+        "/\(cmd)?case=\(caseNum)&agent=Starscream"
     }
 }
-

@@ -32,21 +32,19 @@ public class WebSocketServer: Server, ConnectionDelegate {
     private var connections = [String: ServerConnection]()
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.vluxe.starscream.server.networkstream", attributes: [])
-    
-    public init() {
-        
-    }
-    
+
+    public init() {}
+
     public func start(address: String, port: UInt16) -> Error? {
-        //TODO: support TLS cert adding/binding
+        // TODO: support TLS cert adding/binding
         let parameters = NWParameters(tls: nil, tcp: NWProtocolTCP.Options())
         let p = NWEndpoint.Port(rawValue: port)!
         parameters.requiredLocalEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host.name(address, nil), port: p)
-        
+
         guard let listener = try? NWListener(using: parameters, on: p) else {
             return WSError(type: .serverError, message: "unable to start the listener at: \(address):\(port)", code: 0)
         }
-        listener.newConnectionHandler = {[weak self] conn in
+        listener.newConnectionHandler = { [weak self] conn in
             let transport = TCPTransport(connection: conn)
             let c = ServerConnection(transport: transport)
             c.delegate = self
@@ -72,11 +70,11 @@ public class WebSocketServer: Server, ConnectionDelegate {
         listener.start(queue: queue)
         return nil
     }
-    
+
     public func didReceive(event: ServerEvent) {
         onEvent?(event)
         switch event {
-        case .disconnected(let conn, _, _):
+        case let .disconnected(conn, _, _):
             guard let conn = conn as? ServerConnection else {
                 return
             }
@@ -98,38 +96,38 @@ public class ServerConnection: Connection, HTTPServerDelegate, FramerEventClient
     public weak var delegate: ConnectionDelegate?
     private let id: String
     var uuid: String {
-        return id
+        id
     }
-    
+
     init(transport: TCPTransport) {
-        self.id = UUID().uuidString
+        id = UUID().uuidString
         self.transport = transport
         transport.register(delegate: self)
         httpHandler.register(delegate: self)
         framer.register(delegate: self)
         frameHandler.delegate = self
     }
-    
+
     public func write(data: Data, opcode: FrameOpCode) {
         let wsData = framer.createWriteFrame(opcode: opcode, payload: data, isCompressed: false)
-        transport.write(data: wsData, completion: {_ in })
+        transport.write(data: wsData, completion: { _ in })
     }
-    
+
     // MARK: - TransportEventClient
-    
+
     public func connectionChanged(state: ConnectionState) {
         switch state {
         case .connected:
             break
         case .waiting:
             break
-        case .failed(let error):
-            print("server connection error: \(error ?? WSError(type: .protocolError, message: "default error, no extra data", code: 0))") //handleError(error)
-        case .viability(_):
+        case let .failed(error):
+            print("server connection error: \(error ?? WSError(type: .protocolError, message: "default error, no extra data", code: 0))") // handleError(error)
+        case .viability:
             break
-        case .shouldReconnect(_):
+        case .shouldReconnect:
             break
-        case .receive(let data):
+        case let .receive(data):
             if didUpgrade {
                 framer.add(data: data)
             } else {
@@ -137,60 +135,60 @@ public class ServerConnection: Connection, HTTPServerDelegate, FramerEventClient
             }
         case .cancelled:
             print("server connection cancelled!")
-            //broadcast(event: .cancelled)
+            // broadcast(event: .cancelled)
         }
     }
-    
-    /// MARK: - HTTPServerDelegate
-    
+
+    // MARK: - HTTPServerDelegate
+
     public func didReceive(event: HTTPEvent) {
         switch event {
-        case .success(let headers):
+        case let .success(headers):
             didUpgrade = true
             let response = httpHandler.createResponse(headers: [:])
-            transport.write(data: response, completion: {_ in })
+            transport.write(data: response, completion: { _ in })
             delegate?.didReceive(event: .connected(self, headers))
             onEvent?(.connected(headers))
-        case .failure(let error):
+        case let .failure(error):
             onEvent?(.error(error))
         }
     }
-    
-    /// MARK: - FrameCollectorDelegate
-    
+
+    // MARK: - FrameCollectorDelegate
+
     public func frameProcessed(event: FrameEvent) {
         switch event {
-        case .frame(let frame):
+        case let .frame(frame):
             frameHandler.add(frame: frame)
-        case .error(let error):
+        case let .error(error):
             onEvent?(.error(error))
         }
     }
-    
+
     public func didForm(event: FrameCollector.Event) {
         switch event {
-        case .text(let string):
+        case let .text(string):
             delegate?.didReceive(event: .text(self, string))
             onEvent?(.text(string))
-        case .binary(let data):
+        case let .binary(data):
             delegate?.didReceive(event: .binary(self, data))
             onEvent?(.binary(data))
-        case .pong(let data):
+        case let .pong(data):
             delegate?.didReceive(event: .pong(self, data))
             onEvent?(.pong(data))
-        case .ping(let data):
+        case let .ping(data):
             delegate?.didReceive(event: .ping(self, data))
             onEvent?(.ping(data))
-        case .closed(let reason, let code):
+        case let .closed(reason, code):
             delegate?.didReceive(event: .disconnected(self, reason, code))
             onEvent?(.disconnected(reason, code))
-        case .error(let error):
+        case let .error(error):
             onEvent?(.error(error))
         }
     }
-    
-    public func decompress(data: Data, isFinal: Bool) -> Data? {
-        return nil
+
+    public func decompress(data _: Data, isFinal _: Bool) -> Data? {
+        nil
     }
 }
 #endif
